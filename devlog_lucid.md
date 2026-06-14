@@ -29,11 +29,11 @@ Two observations pushed me toward a new hypothesis:
 - Watching a model output code token by token felt wrong. Code isn't prose — a function signature is a pattern, not a prediction. The right answer for a standard function should be looked up, not generated.
 - Most of the output had everything typed as `optional`. My interpretation: without type context, the model was hedging to pass basic checks. Technically valid, not useful.
 
-**New hypothesis:** Code doesn't have that much entropy, especially for standard patterns. A search algorithm plus a template library should handle most cases — which is roughly how engineers approached this before LLMs.
+**New hypothesis:** Code doesn't have that much entropy, especially for standard patterns. A search algorithm plus a template library should handle most cases. This isn't a novel idea — it's how CASE tools worked in the 80s and 90s, how Make operates, how yacc/lex approached grammar-to-code generation, and how IDE snippet systems still work today. I was independently arriving at a decades-old solution, which in retrospect is either validating or embarrassing depending on how you look at it.
 
 Built `codegenerator` with SEQ/PAR/ROUTER plan logic and memory-based template references. Memory templates improved success rate, but consumed context window. Ran it overnight — out of memory. Ran it again — out of memory again. Disabled memory.
 
-**What I learned:** Memory isn't the answer, not for my case at least. The model needs structure, not more context. The template library hypothesis was worth pursuing but the mechanism needed rethinking.
+**What I learned:** Memory isn't the answer. The model needs structure, not more context. The template library hypothesis was worth pursuing but the mechanism needed rethinking.
 
 ---
 
@@ -96,12 +96,16 @@ Neither requires rewriting the existing code. Both work on spaghetti as-is.
 
 ## What's still open
 
-**The mindmap → code problem** (originally problem 2) is now Q2 in the roadmap. The access contract system is a prerequisite — you can't constrain generation without knowing the structural boundaries first.
+**The mindmap → code problem** is Q2. The working assumption: Mermaid diagram as input, static analysis of information completeness per block, guided fill-in of what's missing, then generation. The access contract system needs to exist first — generation without structural boundaries tends to produce the same spaghetti I started with. The information completeness heatmap fits here, once there's existing tooling worth integrating.
 
-**WS Scheduler** — the idea that view scheduling should minimize context reloading rather than maximize information shown. Based on Working Set.
+**The intermediate representation problem** — what sits between human intent and generated code — isn't solved. Tests work for pure logic. They don't work for event-driven behavior or emergent runtime state. I don't have a complete answer. The current bet is that structural constraints (boundaries, writers, information completeness) get closer than behavioral constraints (tests, assertions) for the generation use case, but this hasn't been validated yet.
+
+**The template library** is shelved, not abandoned. It's a well-established approach — CASE tools, Make, yacc/lex all operate on similar logic. The open question has always been how to build and maintain the library itself, not whether the approach works. Worth returning to with more context.
 
 ---
 
 ## What I'd do differently
 
-To be continued...
+- Define output format before writing generation code. The format is the constraint; everything else follows from it.
+- Don't run AI workflows overnight on open-ended tasks. Volume is not the same as progress, and it's easy to confuse the two until you read the output carefully.
+- Be more skeptical earlier about whether a hypothesis is testable before building around it. The test-as-intermediate-language idea had an obvious failure mode I didn't think through until after the fact.
